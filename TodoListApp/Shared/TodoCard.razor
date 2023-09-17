@@ -1,0 +1,42 @@
+﻿@page "/todoCard"
+@inject NavigationManager NavManager
+@using TodoListApp.Data;
+@inject ToDoListService TodoService
+<div class="col-4 p-3">
+    <div class="card">
+        <div class="card-header" @onclick="EditToDoList">
+            <div class="d-flex">
+                <div class="d-inline">@TodoList.Title</div>
+                <div class="d-inline ms-auto"><i class="fa-regular fa-pen-to-square"></i></div>
+            </div>
+        </div>
+        <ul class="list-group list-group-flush">
+            @if (TodoList.Items != null)
+            {
+                foreach (var item in TodoList.Items)
+                {
+                    <li class="list-group-item @(item.Completed? "bg-success" : "")" @onclick="() => setDoneStatus(item)">@item.Description</li>
+                }
+            }
+            
+        </ul>
+    </div>
+</div>
+
+
+@code {
+    [Parameter]
+    public Data.TodoList TodoList { get; set; }
+
+    private void setDoneStatus(TodoItem item)
+    {
+        item.Completed = !item.Completed;
+        TodoService.SetDoneStatus(TodoList.Id, item.Id, item.Completed);
+    }
+
+    private void EditToDoList()
+    {
+        NavManager.NavigateTo($"/todo/{TodoList.Id}");
+    }
+
+}

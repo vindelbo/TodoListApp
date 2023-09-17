@@ -1,0 +1,135 @@
+﻿@page "/todo/{Id:int}"
+@using TodoListApp.Data;
+@inject ToDoListService TodoService
+@inject NavigationManager NavManager
+@inject IJSRuntime Js
+<PageTitle></PageTitle>
+@if (todoList == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-6">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex">
+                            <InputText class="form-control" id="header" tabindex="1" @bind-Value="todoList.Title" />
+                        </div>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <div class="input-group input-group-sm">
+                                <input type="text" id="newItem" tabindex="2" @bind-value="todoItem.Description" @onclick:stopPropagation="true" @onclick:preventDefault="true" @onkeydown="@AddToDoItemKey" class="form-control me-1" placeholder="New item" />
+                                <button type="text" class="input-group-text btn btn-primary px-3" tabindex="3" @onclick="@(()=>AddTodoItem())">Add</button>
+                            </div>
+                        </li>
+                        @foreach (var item in todoList.Items)
+                        {
+                            <li class="list-group-item">
+                                <div class="input-group input-group-sm">
+                                    <InputText class="form-control" tabindex="4" @bind-Value="item.Description" />
+                                    <button class="input-group-text btn btn-outline-secondary px-3" @onclick="@(() => RemoveTodoItem(item.Id))"><i class="fa fa-x"></i></button>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </div>
+                <div class="mt-2">
+                    <button class="btn btn-danger" @onclick="Cancel">Cancel</button>
+                    <button class="btn btn-info" @onclick="Delete" >Delete</button>
+                    <button class="btn btn-primary" @onclick="SaveTodoList" type="submit">Save</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+<script type="text/javascript">
+    window.focusElement = (element) => {
+        var elementToFocus = document.getElementById(element);
+        elementToFocus.focus();
+    }
+</script>
+@code {
+    private TodoList todoList = new TodoList();
+    private TodoItem todoItem = new TodoItem();
+    // [SupplyParameterFromQuery(Name = "Id")]
+    [Parameter]
+    public int Id { get; set; }
+
+    private void RemoveTodoItem(int id)
+    {
+        var item = todoList.Items.FirstOrDefault(x => x.Id == id);
+        if (item != null)
+        {
+            if (todoList.Id != 0)
+            {
+                TodoService.RemoveToDoItem(todoList.Id, id);
+            }
+            
+            todoList.Items.Remove(item);
+        }
+    }
+    private async void AddTodoItem()
+    {
+        if (!string.IsNullOrEmpty(todoItem.Description))
+        {
+            todoItem.TodoListId = todoList.Id;
+            todoList.Items.Add(todoItem);
+            todoItem = new TodoItem();
+        }
+
+        await Focus("newItem");
+    }
+    private void SaveTodoList()
+    {
+        TodoService.AddOrUpdateTodoList(todoList);
+        NavManager.NavigateTo($"/todo");
+    }
+
+    private async void AddToDoItemKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            AddTodoItem();
+        }
+    }
+
+    public void Delete()
+    {
+        TodoService.RemoveToDoList(todoList.Id);
+        NavManager.NavigateTo($"/todo");
+    }
+
+    public void Cancel()
+    {
+        NavManager.NavigateTo($"/todo");
+    }
+
+    public async Task Focus(string elementId)
+    {
+        await Js.InvokeVoidAsync("focusElement", elementId);
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        todoList = await TodoService.GetToDosListItemAsync(Id);
+        if(todoList == null)
+        {
+            todoList = new TodoList();
+        }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && todoList != null && !todoList.Items.Any())
+        {
+            await Focus("header");
+        }
+        else
+        {
+            await Focus("newItem");
+        }
+    }
+}

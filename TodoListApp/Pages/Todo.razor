@@ -1,0 +1,39 @@
+﻿@page "/todo"
+@page "/"
+@using TodoListApp.Data
+@inject ToDoListService TodoService
+@inject NavigationManager NavManager
+<PageTitle>Todo</PageTitle>
+
+<h1>Todo List</h1>
+
+<button class=" ms-1 btn btn-primary" @onclick="AddNew">Add new Todo</button>
+@if (todoLists == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="col">
+        <div class="row">
+            @foreach (var item in todoLists)
+            {
+                <TodoCard TodoList="@item"></TodoCard>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private List<TodoList>? todoLists;
+
+    private void AddNew()
+    {
+        NavManager.NavigateTo($"/todo/0");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        todoLists = await TodoService.GetToDosAsync();
+    }
+}
